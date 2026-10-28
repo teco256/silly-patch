@@ -1,11 +1,5 @@
-<div align="center">
-<img src="https://avatars.githubusercontent.com/u/274413706" width="128" height="128">
-<h1>Coach's Time Machine - Photon Patcher [util]</h1>
-
-[Please check this Readme for information about CTM.](https://github.com/CoachsTimeMachine)
-
-[Open the utility here.](https://coachstimemachine.github.io/util.photon-patcher/)
-</div>
+# sillypatch
+This is a tool to patch older builds of Rec Room. Its mostly for me but feel free to use it.
 
 ---
 
