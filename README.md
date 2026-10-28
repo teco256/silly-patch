@@ -3,6 +3,6 @@ This is a tool to patch older builds of Rec Room. Its mostly for me but feel fre
 
 ---
 
-In-browser Photon PUN and Voice patcher. Designed for Rec Room builds, but should work with other games that rely on Photon.
+In-browser Photon PUN + Voice and nameserver patcher. Designed for Rec Room builds, but should work with other games that rely on Photon.
 
 This project is licensed under the [MIT License](./LICENSE).
