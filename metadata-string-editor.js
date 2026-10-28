@@ -1,7 +1,7 @@
 /*!
  * MetadataStringEditor (browser port)
  * Edit the string literals in a Unity il2cpp global-metadata.dat entirely client-side.
- * Port of https://github.com/ (MetaDataStringEditor, C# WinForms).
+ * Port of https://github.com/JeremieCHN/MetaDataStringEditor/
  *
  * Usage:
  *   // Full UI inside any element
