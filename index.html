@@ -28,12 +28,17 @@
     </style>
 
     <script src="./patcher.js"></script>
+    <script src="./metadata-string-editor.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             if (localStorage.getItem('pun_saved'))
             {
                 document.getElementById('pun').value = localStorage.getItem('pun_saved');
                 document.getElementById('voice').value = localStorage.getItem('voice_saved');
+            }
+            if (localStorage.getItem('ns_saved'))
+            {
+                document.getElementById('ns').value = localStorage.getItem('ns_saved');
             }
         });
 
@@ -47,6 +52,26 @@
             URL.revokeObjectURL(url);
         }
 
+        // Replaces every string in global-metadata.dat that exactly equals old_ns with new_ns
+        async function patch_metadata(old_ns, new_ns, buffer)
+        {
+            const meta = new MetadataStringEditor.MetadataFile(buffer);
+            let count = 0;
+            for (let i = 0; i < meta.count; i++)
+            {
+                if (meta.getOriginalString(i) === old_ns)
+                {
+                    meta.setString(i, new_ns);
+                    count++;
+                }
+            }
+            if (count === 0)
+            {
+                throw new Error(`Couldn't find the old nameserver "${old_ns}" in global-metadata.dat.`);
+            }
+            return meta.build();
+        }
+
         async function orange_wire()
         {
             const status = document.getElementById('status')
@@ -55,25 +80,55 @@
 
             const old_pun = different_server ? document.getElementById('pun-old').value : "9372aa8d-d3f4-44a0-986d-419e145a2b83"
             const old_voice = different_server ? document.getElementById('voice-old').value : "e93ae440-f238-4b6c-848f-1df89faf14f5"
+            const old_ns = (document.getElementById('ns-old').value.trim() || "ns.rec.net")
             const new_pun = document.getElementById('pun').value
             const new_voice = document.getElementById('voice').value
+            const new_ns = document.getElementById('ns').value.trim()
 
             const file = document.getElementById('upload').files[0]
-            if (!file)
+            const metaFile = document.getElementById('upload-meta').files[0]
+
+            if (!file && !metaFile)
             {
                 status.innerText = "No file provided."
                 status.style = "color: red;"
                 return;
             }
-            const buffer = await file.arrayBuffer();
+            if (metaFile && !new_ns)
+            {
+                status.innerText = "Enter a new nameserver to patch global-metadata.dat."
+                status.style = "color: red;"
+                return;
+            }
+
+            const done = []
 
             try
             {
-                const patchedFile = await patch_photon(old_pun, old_voice, new_pun, new_voice, buffer)
+                if (file)
+                {
+                    const buffer = await file.arrayBuffer();
+                    const patchedFile = await patch_photon(old_pun, old_voice, new_pun, new_voice, buffer)
 
-                const blob = new Blob([patchedFile], { type: file.type });
-                saveBlob(blob, `custom-photon-${file.name}`);
-                status.innerText = "Patched!"
+                    const blob = new Blob([patchedFile], { type: file.type });
+                    saveBlob(blob, `custom-photon-${file.name}`);
+                    done.push(file.name)
+                }
+
+                if (metaFile)
+                {
+                    // small gap so browsers don't swallow the second download
+                    if (file) await new Promise(r => setTimeout(r, 400))
+
+                    const buffer = await metaFile.arrayBuffer();
+                    const patchedMeta = await patch_metadata(old_ns, new_ns, buffer)
+
+                    const blob = new Blob([patchedMeta], { type: "application/octet-stream" });
+                    saveBlob(blob, `custom-ns-${metaFile.name}`);
+                    done.push(metaFile.name)
+                }
+
+                status.innerText = `Patched! (${done.join(", ")})`
                 status.style = "color: green;"
 
                 //only save it if patching went ok
@@ -81,6 +136,7 @@
                 {
                     localStorage.setItem('pun_saved', document.getElementById('pun').value)
                     localStorage.setItem('voice_saved', document.getElementById('voice').value)
+                    localStorage.setItem('ns_saved', document.getElementById('ns').value)
                 }
             }
             catch(e)
@@ -107,11 +163,17 @@
         <label>Unpatched resources.assets</label>
         <input id="upload" type="file" accept=".assets" name="Upload resources.assets">
         <br>
+        <label>Unpatched global-metadata.dat</label>
+        <input id="upload-meta" type="file" accept=".dat" name="Upload global-metadata.dat">
+        <br>
         <label>New Photon PUN AppID</label>
         <input id="pun" type="text" name="Photon PUN" maxlength="36" size="36">
         <br>
         <label>New Photon Voice AppID</label>
         <input id="voice" type="text" name="Photon Voice" maxlength="36" size="36">
+        <br>
+        <label>New nameserver</label>
+        <input id="ns" type="text" name="Nameserver" size="36">
         <br>
         <input type="checkbox" id="save-appid" name="Save AppIDs" checked>
         <label> Use these values on next visit.</label>
@@ -123,15 +185,18 @@
     </div>
     <br>
     <p>You should only need to use this if the game you are patching <b>isn't</b> Rec Room.</p>
-    <button onclick="toggle_rep()">Set original AppID</button>
+    <button onclick="toggle_rep()">Advanced</button>
     <br>
     <div id = "og" class="content" hidden>
-        <p><b>!! AppIDs inputted in here will be used over the default ones !!</b><br>Hide this dialog using the button if you don't need it.</p>
+        <p><b>!! Values inputted in here will be used over the default ones !!</b><br>Hide this dialog using the button if you don't need it.</p>
         <label>Original Photon PUN AppID</label>
         <input id="pun-old" type="text" name="Photon PUN" maxlength="36" size="36" value="9372aa8d-d3f4-44a0-986d-419e145a2b83">
         <br>
         <label>Original Photon Voice AppID</label>
         <input id="voice-old" type="text" name="Photon Voice" maxlength="36" size="36" value="e93ae440-f238-4b6c-848f-1df89faf14f5">
+        <br>
+        <label>Old nameserver</label>
+        <input id="ns-old" type="text" name="Old nameserver" size="36" value="ns.rec.net">
     </div>
 </body>
 </html>
